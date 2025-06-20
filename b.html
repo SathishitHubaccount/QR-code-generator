@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Echo → QR Code</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --primary: #8b5cf6;
+      --secondary: #06b6d4;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --error: #ef4444;
+      --neon-blue: #00f5ff;
+      --neon-purple: #bf00ff;
+      --neon-pink: #ff0080;
+      --neon-green: #39ff14;
+    }
+
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0a0a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Animated starfield background */
+    .starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -2;
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle 3s infinite alternate;
+    }
+
+    @keyframes twinkle {
+      0% { opacity: 0.3; transform: scale(1); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* Animated gradient background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 60% 60%, rgba(191, 0, 255, 0.2) 0%, transparent 50%);
+      animation: gradientShift 15s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { 
+        background: 
+          radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.2) 0%, transparent 50%);
+      }
+      50% { 
+        background: 
+          radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 60% 60%, rgba(139, 92, 246, 0.2) 0%, transparent 50%);
+      }
+    }
+
+    /* Floating particles */
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .particle::before {
+      content: '';
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--neon-blue);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--neon-blue);
+      animation: float 20s linear infinite;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) translateX(0) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100vh) translateX(100px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    .container {
+      position: relative;
+      background: rgba(15, 15, 15, 0.8);
+      backdrop-filter: blur(20px);
+      border: 2px solid transparent;
+      border-radius: 30px;
+      padding: 3rem;
+      max-width: 500px;
+      width: 100%;
+      animation: containerEntrance 1.2s cubic-bezier(0.23, 1, 0.32, 1);
+      box-shadow: 
+        0 0 100px rgba(139, 92, 246, 0.3),
+        inset 0 0 100px rgba(255, 255, 255, 0.05);
+    }
+
+    .container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      padding: 2px;
+      background: linear-gradient(45deg, 
+        var(--neon-blue), 
+        var(--neon-purple), 
+        var(--neon-pink), 
+        var(--neon-green),
+        var(--neon-blue)
+      );
+      border-radius: inherit;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: xor;
+      animation: borderGlow 3s linear infinite;
+    }
+
+    @keyframes borderGlow {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    @keyframes containerEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+        filter: blur(10px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    .title {
+      font-family: 'Orbitron', monospace;
+      font-size: 3rem;
+      font-weight: 900;
+      background: linear-gradient(45deg, 
+        var(--neon-blue), 
+        var(--neon-purple), 
+        var(--neon-pink),
+        var(--neon-blue)
+      );
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: textGlow 3s ease-in-out infinite;
+      text-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+      margin-bottom: 1rem;
+      letter-spacing: 0.1em;
+    }
+
+    @keyframes textGlow {
+      0%, 100% { 
+        background-position: 0% 50%;
+        filter: hue-rotate(0deg);
+      }
+      50% { 
+        background-position: 100% 50%;
+        filter: hue-rotate(180deg);
+      }
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1.2rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      animation: subtitleFade 2s ease-out 0.5s both;
+    }
+
+    @keyframes subtitleFade {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-container {
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    .input-group {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 1.5rem 1.5rem;
+      font-size: 1.1rem;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      font-family: inherit;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--neon-blue);
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-5px);
+      box-shadow: 
+        0 20px 40px rgba(0, 245, 255, 0.2),
+        0 0 20px rgba(0, 245, 255, 0.4),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+
+    .input-field::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .input-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+      opacity: 0;
+      filter: blur(20px);
+      transition: opacity 0.4s;
+      pointer-events: none;
+    }
+
+    .input-field:focus + .input-glow {
+      opacity: 0.3;
+    }
+
+    .generate-btn {
+      width: 100%;
+      padding: 1.5rem 2rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      color: white;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .generate-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.4), 
+        transparent
+      );
+      transition: left 0.6s;
+    }
+
+    .generate-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+      opacity: 0;
+      transition: opacity 0.4s;
+      border-radius: inherit;
+    }
+
+    .generate-btn:hover::before {
+      left: 100%;
+    }
+
+    .generate-btn:hover::after {
+      opacity: 1;
+    }
+
+    .generate-btn:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 
+        0 25px 50px rgba(139, 92, 246, 0.4),
+        0 0 30px rgba(6, 182, 212, 0.6);
+    }
+
+    .generate-btn:active {
+      transform: translateY(-2px) scale(0.98);
+    }
+
+    .generate-btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--neon-blue);
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .preview-container {
+      text-align: center;
+      margin-top: 2rem;
+      opacity: 0;
+      transform: translateY(30px) scale(0.9);
+      transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .preview-container.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .qr-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 2rem;
+    }
+
+    .qr-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      background: linear-gradient(45deg, 
+        var(--neon-blue), 
+        var(--neon-purple), 
+        var(--neon-pink),
+        var(--neon-green)
+      );
+      border-radius: 25px;
+      opacity: 0;
+      filter: blur(20px);
+      transition: opacity 0.4s;
+      animation: qrGlow 3s ease-in-out infinite;
+    }
+
+    .qr-wrapper:hover::before {
+      opacity: 0.6;
+    }
+
+    @keyframes qrGlow {
+      0%, 100% { filter: blur(20px) hue-rotate(0deg); }
+      50% { filter: blur(25px) hue-rotate(180deg); }
+    }
+
+    .qr-image {
+      max-width: 300px;
+      height: auto;
+      border-radius: 20px;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      background: white;
+      padding: 1.5rem;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .qr-image:hover {
+      transform: scale(1.05) rotate(2deg);
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 2rem;
+      background: linear-gradient(45deg, var(--accent), var(--success));
+      color: white;
+      text-decoration: none;
+      border-radius: 15px;
+      font-weight: 600;
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .download-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, var(--neon-green), var(--neon-blue));
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .download-btn:hover::before {
+      opacity: 1;
+    }
+
+    .download-btn:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 
+        0 15px 30px rgba(245, 158, 11, 0.4),
+        0 0 20px rgba(16, 185, 129, 0.6);
+    }
+
+    .download-btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .download-btn .icon {
+      position: relative;
+      z-index: 1;
+    }
+
+    .message {
+      padding: 1.5rem;
+      border-radius: 15px;
+      margin-top: 1.5rem;
+      backdrop-filter: blur(10px);
+      display: none;
+      animation: messageSlide 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .message::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transform: translateX(-100%);
+      animation: messageShimmer 2s ease-in-out infinite;
+    }
+
+    @keyframes messageShimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    @keyframes messageSlide {
+      0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 2px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    }
+
+    .error-message.show {
+      display: block;
+      animation: messageSlide 0.6s cubic-bezier(0.23, 1, 0.32, 1), shake 0.5s ease-in-out 0.2s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    .success-message {
+      background: rgba(16, 185, 129, 0.1);
+      border: 2px solid rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    .success-message.show {
+      display: block;
+    }
+
+    .icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      filter: drop-shadow(0 0 5px currentColor);
+    }
+
+    /* Glitch effect for title */
+    .title.glitch {
+      animation: glitch 0.3s ease-in-out;
+    }
+
+    @keyframes glitch {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-1px); }
+      80% { transform: translateX(1px); }
+      100% { transform: translateX(0); }
+    }
+
+    /* Responsive design */
+    @media (max-width: 640px) {
+      .container {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+      }
+      
+      .title {
+        font-size: 2.5rem;
+      }
+      
+      .qr-image {
+        max-width: 260px;
+      }
+    }
+
+    /* Cursor trail effect */
+    .cursor-trail {
+      position: fixed;
+      width: 6px;
+      height: 6px;
+      background: var(--neon-blue);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      box-shadow: 0 0 10px var(--neon-blue);
+      animation: cursorFade 0.5s ease-out forwards;
+    }
+
+    @keyframes cursorFade {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated starfield -->
+  <div class="starfield" id="starfield"></div>
+
+  <!-- Floating particles -->
+  <div class="particles" id="particles"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1 class="title" id="title">ECHO → QR</h1>
+      <p class="subtitle">Transform text,URL,message in to QR code</p>
+    </div>
+
+    <div class="form-container">
+      <form id="qrForm">
+        <div class="input-group">
+          <input 
+            id="textInput" 
+            type="text" 
+            class="input-field"
+            placeholder="Enter your message to generate QR code..." 
+            required 
+          />
+          <div class="input-glow"></div>
+        </div>
+        <button type="submit" class="generate-btn" id="generateBtn">
+          <span id="btnText">Generate Qr Code</span>
+        </button>
+      </form>
+    </div>
+
+    <div id="preview" class="preview-container">
+      <div class="qr-wrapper">
+        <img id="qrImg" class="qr-image" src="" alt="Quantum Matrix Generated" />
+      </div>
+      <a id="downloadLink" class="download-btn" href="" download="quantum-matrix.png">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <span>Download Matrix</span>
+      </a>
+    </div>
+
+    <div id="error" class="message error-message"></div>
+    <div id="success" class="message success-message"></div>
+  </div>
+
+  <script>
+    // URL of the FastAPI endpoint that returns the QR code
+    const API_URL = "https://sathish2352-echo.hf.space/echo";
+
+    const form = document.getElementById("qrForm");
+    const textInput = document.getElementById("textInput");
+    const generateBtn = document.getElementById("generateBtn");
+    const btnText = document.getElementById("btnText");
+    const preview = document.getElementById("preview");
+    const qrImg = document.getElementById("qrImg");
+    const downloadLink = document.getElementById("downloadLink");
+    const errorBox = document.getElementById("error");
+    const successBox = document.getElementById("success");
+    const title = document.getElementById("title");
+
+    // Create animated starfield
+    function createStarfield() {
+      const starfield = document.getElementById('starfield');
+      const starCount = 100;
+      
+      for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.width = Math.random() * 3 + 1 + 'px';
+        star.style.height = star.style.width;
+        star.style.animationDelay = Math.random() * 3 + 's';
+        star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        starfield.appendChild(star);
+      }
+    }
+
+    // Create floating particles
+    function createParticles() {
+      const particles = document.getElementById('particles');
+      
+      setInterval(() => {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + 'vw';
+        particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+        particle.style.animationDelay = Math.random() * 2 + 's';
+        
+        const colors = ['--neon-blue', '--neon-purple', '--neon-pink', '--neon-green'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.setProperty('--particle-color', `var(${color})`);
+        
+        particles.appendChild(particle);
+        
+        setTimeout(() => {
+          particle.remove();
+        }, 25000);
+      }, 500);
+    }
+
+    // Cursor trail effect
+    function createCursorTrail(e) {
+      const trail = document.createElement('div');
+      trail.className = 'cursor-trail';
+      trail.style.left = e.clientX + 'px';
+      trail.style.top = e.clientY + 'px';
+      document.body.appendChild(trail);
+      
+      setTimeout(() => {
+        trail.remove();
+      }, 500);
+    }
+
+    // Initialize effects
+    createStarfield();
+    createParticles();
+
+    // Add cursor trail
+    document.addEventListener('mousemove', createCursorTrail);
+
+    // Glitch effect on title click
+    title.addEventListener('click', () => {
+      title.classList.add('glitch');
+      setTimeout(() => {
+        title.classList.remove('glitch');
+      }, 300);
+    });
+
+    // Hide messages function
+    function hideMessages() {
+      errorBox.classList.remove('show');
+      successBox.classList.remove('show');
+    }
+
+    // Show error message
+    function showError(message) {
+      hideMessages();
+      errorBox.textContent = message;
+      errorBox.classList.add('show');
+    }
+
+    // Show success message
+    function showSuccess(message) {
+      hideMessages();
+      successBox.textContent = message;
+      successBox.classList.add('show');
+    }
+
+    // Set loading state
+    function setLoading(loading) {
+      if (loading) {
+        generateBtn.disabled = true;
+        btnText.innerHTML = '<span class="loading"></span>Generating QR Code...';
+      } else {
+        generateBtn.disabled = false;
+        btnText.textContent = 'Generate Qr Code';
+      }
+    }
+
+    // Handle form submission
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = textInput.value.trim();
+      if (!text) return;
+
+      hideMessages();
+      preview.classList.remove('show');
+      setLoading(true);
+
+      // Add screen shake effect
+      document.body.style.animation = 'shake 0.5s ease-in-out';
+      setTimeout(() => {
+        document.body.style.animation = '';
+      }, 500);
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(text),
+        });
+
+        if (!res.ok || !res.headers.get("Content-Type")?.includes("image")) {
+          throw new Error(await res.text() || 'Failed to generate QR code');
+        }
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        qrImg.src = objectUrl;
+        downloadLink.href = objectUrl;
+
+        // Dramatic reveal with delay
+        setTimeout(() => {
+          preview.classList.add('show');
+          showSuccess('Quantum matrix generated successfully!');
+          
+          // Flash effect
+          document.body.style.background = 'rgba(0, 245, 255, 0.1)';
+          setTimeout(() => {
+            document.body.style.background = '';
+          }, 200);
+        }, 800);
+
+      } catch (err) {
+        showError('Error: ' + (err.message || 'Unknown error'));
+        
+        // Error flash effect
+        document.body.style.background = 'rgba(239, 68, 68, 0.1)';
+        setTimeout(() => {
+          document.body.style.background = '';
+        }, 200);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // Enhanced input interactions
+    textInput.addEventListener('input', () => {
+      hideMessages();
+    });
+
+    textInput.addEventListener('focus', () => {
+      // Create ripple effect
+      const ripple = document.createElement('div');
+      ripple.style.position = 'absolute';
+      ripple.style.width = '300px';
+      ripple.style.height = '300px';
+      ripple.style.borderRadius = '50%';
+      ripple.style.background = 'radial-gradient(circle, rgba(0, 245, 255, 0.3) 0%, transparent 70%)';
+      ripple.style.left = '50%';
+      ripple.style.top = '50%';
+      ripple.style.transform = 'translate(-50%, -50%) scale(0)';
+      ripple.style.animation = 'ripple 0.6s ease-out';
+      ripple.style.pointerEvents = 'none';
+      ripple.style.zIndex = '-1';
+      
+      textInput.parentElement.appendChild(ripple);
+      
+      setTimeout(() => {
+        ripple.remove();
+      }, 600);
+    });
+
+    // Add ripple keyframes
+    const rippleKeyframes = `
+      @keyframes ripple {
+        to {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 0;
+        }
+      }
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = rippleKeyframes;
+    document.head.appendChild(style);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        form.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    // Clean up object URLs
+    window.addEventListener('beforeunload', () => {
+      if (qrImg.src.startsWith('blob:')) {
+        URL.revokeObjectURL(qrImg.src);
+      }
+    });
+
+    // Add periodic glitch effects
+    setInterval(() => {
+      if (Math.random() < 0.1) { // 10% chance every 3 seconds
+        title.classList.add('glitch');
+        setTimeout(() => {
+          title.classList.remove('glitch');
+        }, 300);
+      }
+    }, 3000);
+  </script>
+</body>
+</html>
